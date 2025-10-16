@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fun Insight - Pattern Pulse</title>
+<style>
+  body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #7f8cfa, #74ebd5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+    color: #fff;
+  }
+  h1 { margin-bottom: 10px; }
+  .game-container { display: flex; flex-direction: column; align-items: center; margin-top: 20px; }
+  .sequence-display { display: flex; gap: 15px; margin-bottom: 20px; }
+  .shape { width: 60px; height: 60px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; transition: transform 0.2s; }
+  .shape:hover { transform: scale(1.1); }
+  .feedback { margin-top: 20px; text-align: center; }
+  .metrics { margin-top: 15px; background: rgba(255,255,255,0.2); padding: 15px; border-radius: 10px; width: 300px; text-align: left; }
+  .star { color: gold; font-size: 24px; }
+  button { margin-top: 15px; padding: 10px 20px; border: none; border-radius: 8px; background: #f39c12; color: #fff; font-size: 16px; cursor: pointer; }
+  button:hover { background: #e67e22; }
+</style>
+</head>
+<body>
+
+<h1>Fun Insight - Pattern Pulse</h1>
+<div class="game-container">
+  <div class="sequence-display" id="sequenceDisplay"></div>
+  <div class="feedback" id="feedback">Watch the sequence!</div>
+  <div class="metrics" id="metrics" style="display:none;"></div>
+  <button id="startBtn">Start Game</button>
+</div>
+
+<script>
+const shapes = ['🔵','🟢','🟠','🔺','⬛'];
+let sequence = [];
+let userInput = [];
+let level = 3;
+let totalAttempts = 0;
+let correctAttempts = 0;
+let reactionTimes = [];
+let sequenceStartTime;
+
+const sequenceDisplay = document.getElementById('sequenceDisplay');
+const feedback = document.getElementById('feedback');
+const metrics = document.getElementById('metrics');
+const startBtn = document.getElementById('startBtn');
+
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+async function showSequence() {
+  feedback.innerText = "Memorize the sequence!";
+  sequenceDisplay.innerHTML = '';
+  for (let s of sequence) {
+    const div = document.createElement('div');
+    div.className = 'shape';
+    div.innerText = s;
+    sequenceDisplay.appendChild(div);
+    await sleep(800);
+    div.style.opacity = '0';
+    await sleep(200);
+  }
+  sequenceDisplay.innerHTML = '';
+  feedback.innerText = "Repeat the sequence!";
+  renderShapeButtons();
+  sequenceStartTime = Date.now();
+}
+
+function renderShapeButtons() {
+  sequenceDisplay.innerHTML = '';
+  for (let s of shapes) {
+    const div = document.createElement('div');
+    div.className = 'shape';
+    div.innerText = s;
+    div.onclick = () => handleUserInput(s);
+    sequenceDisplay.appendChild(div);
+  }
+}
+
+function handleUserInput(shape) {
+  const currentTime = Date.now();
+  reactionTimes.push(currentTime - sequenceStartTime);
+  sequenceStartTime = currentTime;
+
+  userInput.push(shape);
+  if (userInput.length === sequence.length) {
+    totalAttempts++;
+    const correct = userInput.every((val,i) => val === sequence[i]);
+    if (correct) {
+      correctAttempts++;
+      feedback.innerHTML = `✅ Correct! Level up!`;
+      level++;
+    } else {
+      feedback.innerHTML = `❌ Oops! Try again.`;
+      if(level>3) level--;
+    }
+    showMetrics();
+    userInput = [];
+    sequence = generateSequence(level);
+    setTimeout(showSequence, 1200);
+  }
+}
+
+function generateSequence(len) {
+  let seq = [];
+  for (let i=0;i<len;i++){
+    seq.push(shapes[Math.floor(Math.random()*shapes.length)]);
+  }
+  return seq;
+}
+
+function showMetrics() {
+  const accuracy = Math.round((correctAttempts/totalAttempts)*100);
+  const avgReaction = Math.round(reactionTimes.reduce((a,b)=>a+b,0)/reactionTimes.length);
+  const memorySpan = sequence.length - 1;
+  
+  let insight;
+  if(accuracy>=90) insight = "🌟 Memory Genius!";
+  else if(accuracy>=70) insight = "🧩 Above Average Memory";
+  else if(accuracy>=50) insight = "⚡ Average Memory, keep practicing!";
+  else insight = "🐢 Work on your focus & recall!";
+  
+  metrics.style.display = 'block';
+  metrics.innerHTML = `
+    <strong>Raw Data:</strong><br>
+    Accuracy: ${accuracy}%<br>
+    Memory Span: ${memorySpan} items<br>
+    Avg Reaction Time: ${avgReaction} ms<br>
+    Total Attempts: ${totalAttempts}<br><br>
+    <strong>Insight-Fun:</strong><br>
+    ${insight}
+  `;
+}
+
+startBtn.onclick = () => {
+  totalAttempts = 0;
+  correctAttempts = 0;
+  reactionTimes = [];
+  level = 3;
+  sequence = generateSequence(level);
+  metrics.style.display='none';
+  showSequence();
+};
+</script>
+
+</body>
+</html>
