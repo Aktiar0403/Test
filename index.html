@@ -41,6 +41,7 @@ button:hover { background: #e67e22; transform: scale(1.05); }
   <div class="feedback" id="feedback">Watch the sequence!</div>
   <div class="metrics" id="metrics" style="display:none;"></div>
   <button id="startBtn">Start Game</button>
+  <button id="nextBtn" style="display:none;">Next Stage</button>
 </div>
 
 <script>
@@ -57,6 +58,7 @@ const sequenceDisplay = document.getElementById('sequenceDisplay');
 const feedback = document.getElementById('feedback');
 const metrics = document.getElementById('metrics');
 const startBtn = document.getElementById('startBtn');
+const nextBtn = document.getElementById('nextBtn');
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
@@ -106,7 +108,6 @@ function handleUserInput(shape, divElement) {
   sequenceStartTime = currentTime;
 
   userInput.push(shape);
-  // Glow effect
   divElement.style.boxShadow='0 0 20px #fff';
   setTimeout(()=>divElement.style.boxShadow='',200);
 
@@ -125,7 +126,9 @@ function handleUserInput(shape, divElement) {
     showMetrics();
     userInput = [];
     sequence = generateSequence(level);
-    setTimeout(showSequence, 1200);
+
+    // Show Next Stage button instead of auto-advance
+    nextBtn.style.display = 'inline-block';
   }
 }
 
@@ -160,6 +163,7 @@ function showMetrics() {
   `;
 }
 
+// Event listeners
 startBtn.onclick = () => {
   totalAttempts = 0;
   correctAttempts = 0;
@@ -167,6 +171,12 @@ startBtn.onclick = () => {
   level = 3;
   sequence = generateSequence(level);
   metrics.style.display='none';
+  nextBtn.style.display='none';
+  showSequence();
+};
+
+nextBtn.onclick = () => {
+  nextBtn.style.display = 'none';
   showSequence();
 };
 </script>
