@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fun Insight - Working Memory Test</title>
+<title>Fun Insight - Working Memory Adventure</title>
 <style>
 body {
   font-family: 'Arial', sans-serif;
@@ -18,29 +18,34 @@ body {
   color: #fff;
   overflow-x: hidden;
 }
-h1 { margin-bottom: 10px; }
+h1 { margin-bottom: 10px; text-align:center; }
 .game-container { display: flex; flex-direction: column; align-items: center; margin-top: 20px; }
 .sequence-display { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; justify-content:center;}
 .shape { width: 60px; height: 60px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; transition: transform 0.2s, box-shadow 0.2s; }
 .shape:hover { transform: scale(1.2); box-shadow: 0 0 15px rgba(255,255,255,0.7); }
 .feedback { margin-top: 20px; text-align: center; font-size: 18px; min-height:24px; }
-.metrics { margin-top: 15px; background: rgba(255,255,255,0.2); padding: 15px; border-radius: 10px; width: 300px; text-align: left; transition: all 0.3s; }
+.metrics { margin-top: 15px; background: rgba(255,255,255,0.2); padding: 15px; border-radius: 10px; width: 320px; text-align: left; transition: all 0.3s; }
 .star { color: gold; font-size: 24px; animation: bounce 0.5s ease; }
 @keyframes bounce { 0% {transform: scale(0);} 50% {transform: scale(1.3);} 100% {transform: scale(1);} }
 .confetti { position: absolute; width: 10px; height: 10px; background: gold; top:0; animation: fall 1s linear forwards; border-radius:50%; }
 @keyframes fall { 0% {top:0; opacity:1;} 100% {top:100vh; opacity:0;} }
 button { margin-top: 15px; padding: 10px 20px; border: none; border-radius: 8px; background: #f39c12; color: #fff; font-size: 16px; cursor: pointer; transition: transform 0.2s; }
 button:hover { background: #e67e22; transform: scale(1.05); }
+.progress-bar-container { width: 300px; height: 15px; background: rgba(255,255,255,0.3); border-radius: 10px; margin-top: 10px; }
+.progress-bar { height: 100%; background: #f1c40f; width: 0%; border-radius: 10px; transition: width 0.5s; }
 </style>
 </head>
 <body>
 
-<h1>Fun Insight - Working Memory Test</h1>
+<h1>Fun Insight - Working Memory Adventure</h1>
 <div class="game-container">
   <div class="sequence-display" id="sequenceDisplay"></div>
-  <div class="feedback" id="feedback">Watch the sequence!</div>
+  <div class="feedback" id="feedback">Press Start to begin your brain adventure!</div>
+  <div class="progress-bar-container">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
   <div class="metrics" id="metrics" style="display:none;"></div>
-  <button id="startBtn">Start Test</button>
+  <button id="startBtn">Start Adventure</button>
 </div>
 
 <script>
@@ -54,31 +59,37 @@ let maxStageCompleted = 0;
 let reactionTimes = [];
 let stageReactionTimes = [];
 let sequenceStartTime;
+const totalLevels = 12; // max for progress bar scaling
 
 const sequenceDisplay = document.getElementById('sequenceDisplay');
 const feedback = document.getElementById('feedback');
 const metrics = document.getElementById('metrics');
 const startBtn = document.getElementById('startBtn');
+const progressBar = document.getElementById('progressBar');
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
 function spawnConfetti() {
-  for(let i=0;i<20;i++){
+  for(let i=0;i<25;i++){
     const c = document.createElement('div');
     c.className='confetti';
     c.style.left=Math.random()*window.innerWidth+'px';
-    c.style.background=['#f1c40f','#e67e22','#e74c3c','#1abc9c'][Math.floor(Math.random()*4)];
+    c.style.background=['#f1c40f','#e67e22','#e74c3c','#1abc9c','#9b59b6'][Math.floor(Math.random()*5)];
     document.body.appendChild(c);
     setTimeout(()=>document.body.removeChild(c),1000);
   }
 }
 
-// Generate sequence (random + optional backward manipulation)
-function generateSequence(len) {
+function updateProgressBar() {
+  progressBar.style.width = Math.min((stage/totalLevels)*100,100) + '%';
+}
+
+function generateSequence(len, backward=false) {
   let seq = [];
   for (let i=0;i<len;i++){
     seq.push(shapes[Math.floor(Math.random()*shapes.length)]);
   }
+  if(backward) seq.reverse(); // optional backward sequence
   return seq;
 }
 
@@ -86,6 +97,7 @@ async function showSequence() {
   feedback.innerText = `Stage ${stage}: Memorize the sequence!`;
   sequenceDisplay.innerHTML = '';
   stageReactionTimes = [];
+  updateProgressBar();
   for (let s of sequence) {
     const div = document.createElement('div');
     div.className = 'shape';
@@ -128,14 +140,15 @@ function handleUserInput(shape, divElement) {
     if (correct) {
       correctAttempts++;
       maxStageCompleted = Math.max(maxStageCompleted, stage);
-      feedback.innerHTML = `✅ Correct! Stage ${stage} complete! <span class="star">⭐</span>`;
+      feedback.innerHTML = `✅ Stage ${stage} complete! <span class="star">⭐</span>`;
       spawnConfetti();
       stage++;
-      sequence = generateSequence(stage + 2); // Increasing difficulty
+      let backward = (stage%3===0); // every 3rd stage backward for manipulation
+      sequence = generateSequence(stage + 2, backward);
       userInput = [];
       setTimeout(showSequence, 1000);
     } else {
-      feedback.innerHTML = `❌ Incorrect! Test ended at Stage ${stage}.`;
+      feedback.innerHTML = `❌ Incorrect! Adventure ended at Stage ${stage}.`;
       reactionTimes.push(...stageReactionTimes);
       showFinalResults();
     }
@@ -145,11 +158,12 @@ function handleUserInput(shape, divElement) {
 function showFinalResults() {
   const accuracy = Math.round((correctAttempts/totalAttempts)*100);
   const avgReaction = Math.round(reactionTimes.reduce((a,b)=>a+b,0)/reactionTimes.length);
+  const consistency = Math.round(100 - (Math.max(...reactionTimes)-Math.min(...reactionTimes))/avgReaction*100);
   let insight;
-  if(maxStageCompleted>=8) insight = "🌟 Memory Genius!";
-  else if(maxStageCompleted>=6) insight = "🧩 Above Average Memory";
-  else if(maxStageCompleted>=4) insight = "⚡ Average Memory, keep practicing!";
-  else insight = "🐢 Work on your focus & recall!";
+  if(maxStageCompleted>=10) insight = "🧠 Memory Master! Your brain is exceptional!";
+  else if(maxStageCompleted>=7) insight = "🌟 Brain Wizard! Above Average Memory.";
+  else if(maxStageCompleted>=4) insight = "⚡ Average Memory, keep training!";
+  else insight = "🐢 Focus Ninja Needed! Practice more.";
 
   metrics.style.display = 'block';
   metrics.innerHTML = `
@@ -157,12 +171,14 @@ function showFinalResults() {
     Max Stage Completed: ${maxStageCompleted}<br>
     Accuracy: ${accuracy}%<br>
     Avg Reaction Time: ${avgReaction} ms<br>
+    Consistency: ${consistency}%<br>
     Total Attempts: ${totalAttempts}<br><br>
     <strong>Insight-Fun:</strong><br>
     ${insight}
   `;
   sequenceDisplay.innerHTML = '';
   startBtn.style.display = 'inline-block';
+  progressBar.style.width='0%';
 }
 
 startBtn.onclick = () => {
@@ -171,9 +187,10 @@ startBtn.onclick = () => {
   correctAttempts = 0;
   maxStageCompleted = 0;
   reactionTimes = [];
-  sequence = generateSequence(stage + 2);
   metrics.style.display='none';
   startBtn.style.display='none';
+  let backward = false;
+  sequence = generateSequence(stage + 2, backward);
   showSequence();
 };
 </script>
