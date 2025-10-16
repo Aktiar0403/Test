@@ -5,28 +5,32 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Fun Insight - Pattern Pulse</title>
 <style>
-  body {
-    font-family: 'Arial', sans-serif;
-    background: linear-gradient(135deg, #7f8cfa, #74ebd5);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    min-height: 100vh;
-    margin: 0;
-    padding: 20px;
-    color: #fff;
-  }
-  h1 { margin-bottom: 10px; }
-  .game-container { display: flex; flex-direction: column; align-items: center; margin-top: 20px; }
-  .sequence-display { display: flex; gap: 15px; margin-bottom: 20px; }
-  .shape { width: 60px; height: 60px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; transition: transform 0.2s; }
-  .shape:hover { transform: scale(1.1); }
-  .feedback { margin-top: 20px; text-align: center; }
-  .metrics { margin-top: 15px; background: rgba(255,255,255,0.2); padding: 15px; border-radius: 10px; width: 300px; text-align: left; }
-  .star { color: gold; font-size: 24px; }
-  button { margin-top: 15px; padding: 10px 20px; border: none; border-radius: 8px; background: #f39c12; color: #fff; font-size: 16px; cursor: pointer; }
-  button:hover { background: #e67e22; }
+body {
+  font-family: 'Arial', sans-serif;
+  background: linear-gradient(135deg, #7f8cfa, #74ebd5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 100vh;
+  margin: 0;
+  padding: 20px;
+  color: #fff;
+  overflow-x: hidden;
+}
+h1 { margin-bottom: 10px; }
+.game-container { display: flex; flex-direction: column; align-items: center; margin-top: 20px; }
+.sequence-display { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; justify-content:center;}
+.shape { width: 60px; height: 60px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; transition: transform 0.2s, box-shadow 0.2s; }
+.shape:hover { transform: scale(1.2); box-shadow: 0 0 15px rgba(255,255,255,0.7); }
+.feedback { margin-top: 20px; text-align: center; font-size: 18px; min-height:24px; }
+.metrics { margin-top: 15px; background: rgba(255,255,255,0.2); padding: 15px; border-radius: 10px; width: 300px; text-align: left; transition: all 0.3s; }
+.star { color: gold; font-size: 24px; animation: bounce 0.5s ease; }
+@keyframes bounce { 0% {transform: scale(0);} 50% {transform: scale(1.3);} 100% {transform: scale(1);} }
+.confetti { position: absolute; width: 10px; height: 10px; background: gold; top:0; animation: fall 1s linear forwards; border-radius:50%; }
+@keyframes fall { 0% {top:0; opacity:1;} 100% {top:100vh; opacity:0;} }
+button { margin-top: 15px; padding: 10px 20px; border: none; border-radius: 8px; background: #f39c12; color: #fff; font-size: 16px; cursor: pointer; transition: transform 0.2s; }
+button:hover { background: #e67e22; transform: scale(1.05); }
 </style>
 </head>
 <body>
@@ -56,6 +60,17 @@ const startBtn = document.getElementById('startBtn');
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
+function spawnConfetti() {
+  for(let i=0;i<20;i++){
+    const c = document.createElement('div');
+    c.className='confetti';
+    c.style.left=Math.random()*window.innerWidth+'px';
+    c.style.background=['#f1c40f','#e67e22','#e74c3c','#1abc9c'][Math.floor(Math.random()*4)];
+    document.body.appendChild(c);
+    setTimeout(()=>document.body.removeChild(c),1000);
+  }
+}
+
 async function showSequence() {
   feedback.innerText = "Memorize the sequence!";
   sequenceDisplay.innerHTML = '';
@@ -64,7 +79,7 @@ async function showSequence() {
     div.className = 'shape';
     div.innerText = s;
     sequenceDisplay.appendChild(div);
-    await sleep(800);
+    await sleep(700);
     div.style.opacity = '0';
     await sleep(200);
   }
@@ -80,23 +95,28 @@ function renderShapeButtons() {
     const div = document.createElement('div');
     div.className = 'shape';
     div.innerText = s;
-    div.onclick = () => handleUserInput(s);
+    div.onclick = () => handleUserInput(s, div);
     sequenceDisplay.appendChild(div);
   }
 }
 
-function handleUserInput(shape) {
+function handleUserInput(shape, divElement) {
   const currentTime = Date.now();
   reactionTimes.push(currentTime - sequenceStartTime);
   sequenceStartTime = currentTime;
 
   userInput.push(shape);
+  // Glow effect
+  divElement.style.boxShadow='0 0 20px #fff';
+  setTimeout(()=>divElement.style.boxShadow='',200);
+
   if (userInput.length === sequence.length) {
     totalAttempts++;
     const correct = userInput.every((val,i) => val === sequence[i]);
     if (correct) {
       correctAttempts++;
-      feedback.innerHTML = `✅ Correct! Level up!`;
+      feedback.innerHTML = `✅ Correct! Level up! <span class="star">⭐</span>`;
+      spawnConfetti();
       level++;
     } else {
       feedback.innerHTML = `❌ Oops! Try again.`;
