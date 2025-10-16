@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fun Insight - Pattern Pulse</title>
+<title>Fun Insight - Working Memory Test</title>
 <style>
 body {
   font-family: 'Arial', sans-serif;
@@ -35,30 +35,30 @@ button:hover { background: #e67e22; transform: scale(1.05); }
 </head>
 <body>
 
-<h1>Fun Insight - Pattern Pulse</h1>
+<h1>Fun Insight - Working Memory Test</h1>
 <div class="game-container">
   <div class="sequence-display" id="sequenceDisplay"></div>
   <div class="feedback" id="feedback">Watch the sequence!</div>
   <div class="metrics" id="metrics" style="display:none;"></div>
-  <button id="startBtn">Start Game</button>
-  <button id="nextBtn" style="display:none;">Next Stage</button>
+  <button id="startBtn">Start Test</button>
 </div>
 
 <script>
 const shapes = ['🔵','🟢','🟠','🔺','⬛'];
 let sequence = [];
 let userInput = [];
-let level = 3;
+let stage = 1;
 let totalAttempts = 0;
 let correctAttempts = 0;
+let maxStageCompleted = 0;
 let reactionTimes = [];
+let stageReactionTimes = [];
 let sequenceStartTime;
 
 const sequenceDisplay = document.getElementById('sequenceDisplay');
 const feedback = document.getElementById('feedback');
 const metrics = document.getElementById('metrics');
 const startBtn = document.getElementById('startBtn');
-const nextBtn = document.getElementById('nextBtn');
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
@@ -73,9 +73,19 @@ function spawnConfetti() {
   }
 }
 
+// Generate sequence (random + optional backward manipulation)
+function generateSequence(len) {
+  let seq = [];
+  for (let i=0;i<len;i++){
+    seq.push(shapes[Math.floor(Math.random()*shapes.length)]);
+  }
+  return seq;
+}
+
 async function showSequence() {
-  feedback.innerText = "Memorize the sequence!";
+  feedback.innerText = `Stage ${stage}: Memorize the sequence!`;
   sequenceDisplay.innerHTML = '';
+  stageReactionTimes = [];
   for (let s of sequence) {
     const div = document.createElement('div');
     div.className = 'shape';
@@ -104,7 +114,8 @@ function renderShapeButtons() {
 
 function handleUserInput(shape, divElement) {
   const currentTime = Date.now();
-  reactionTimes.push(currentTime - sequenceStartTime);
+  const reaction = currentTime - sequenceStartTime;
+  stageReactionTimes.push(reaction);
   sequenceStartTime = currentTime;
 
   userInput.push(shape);
@@ -116,67 +127,53 @@ function handleUserInput(shape, divElement) {
     const correct = userInput.every((val,i) => val === sequence[i]);
     if (correct) {
       correctAttempts++;
-      feedback.innerHTML = `✅ Correct! Level up! <span class="star">⭐</span>`;
+      maxStageCompleted = Math.max(maxStageCompleted, stage);
+      feedback.innerHTML = `✅ Correct! Stage ${stage} complete! <span class="star">⭐</span>`;
       spawnConfetti();
-      level++;
+      stage++;
+      sequence = generateSequence(stage + 2); // Increasing difficulty
+      userInput = [];
+      setTimeout(showSequence, 1000);
     } else {
-      feedback.innerHTML = `❌ Oops! Try again.`;
-      if(level>3) level--;
+      feedback.innerHTML = `❌ Incorrect! Test ended at Stage ${stage}.`;
+      reactionTimes.push(...stageReactionTimes);
+      showFinalResults();
     }
-    showMetrics();
-    userInput = [];
-    sequence = generateSequence(level);
-
-    // Show Next Stage button instead of auto-advance
-    nextBtn.style.display = 'inline-block';
   }
 }
 
-function generateSequence(len) {
-  let seq = [];
-  for (let i=0;i<len;i++){
-    seq.push(shapes[Math.floor(Math.random()*shapes.length)]);
-  }
-  return seq;
-}
-
-function showMetrics() {
+function showFinalResults() {
   const accuracy = Math.round((correctAttempts/totalAttempts)*100);
   const avgReaction = Math.round(reactionTimes.reduce((a,b)=>a+b,0)/reactionTimes.length);
-  const memorySpan = sequence.length - 1;
-  
   let insight;
-  if(accuracy>=90) insight = "🌟 Memory Genius!";
-  else if(accuracy>=70) insight = "🧩 Above Average Memory";
-  else if(accuracy>=50) insight = "⚡ Average Memory, keep practicing!";
+  if(maxStageCompleted>=8) insight = "🌟 Memory Genius!";
+  else if(maxStageCompleted>=6) insight = "🧩 Above Average Memory";
+  else if(maxStageCompleted>=4) insight = "⚡ Average Memory, keep practicing!";
   else insight = "🐢 Work on your focus & recall!";
-  
+
   metrics.style.display = 'block';
   metrics.innerHTML = `
     <strong>Raw Data:</strong><br>
+    Max Stage Completed: ${maxStageCompleted}<br>
     Accuracy: ${accuracy}%<br>
-    Memory Span: ${memorySpan} items<br>
     Avg Reaction Time: ${avgReaction} ms<br>
     Total Attempts: ${totalAttempts}<br><br>
     <strong>Insight-Fun:</strong><br>
     ${insight}
   `;
+  sequenceDisplay.innerHTML = '';
+  startBtn.style.display = 'inline-block';
 }
 
-// Event listeners
 startBtn.onclick = () => {
+  stage = 1;
   totalAttempts = 0;
   correctAttempts = 0;
+  maxStageCompleted = 0;
   reactionTimes = [];
-  level = 3;
-  sequence = generateSequence(level);
+  sequence = generateSequence(stage + 2);
   metrics.style.display='none';
-  nextBtn.style.display='none';
-  showSequence();
-};
-
-nextBtn.onclick = () => {
-  nextBtn.style.display = 'none';
+  startBtn.style.display='none';
   showSequence();
 };
 </script>
